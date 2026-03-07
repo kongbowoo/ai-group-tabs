@@ -1,7 +1,7 @@
 import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { LoadingSpinner } from "./components/LoadingSpinner";
-import { batchGroupTabs, validateApiKey } from "./services";
+import { batchGroupTabs } from "./services";
 import { getStorage, setStorage } from "./utils";
 import Input from "./components/Input";
 import Switch from "./components/Switch";
@@ -12,19 +12,53 @@ import { ServiceProvider } from "./types";
 
 import "./popup.css";
 
+type Language = "en" | "zh";
+
+const translations = {
+  en: {
+    title: "AI Group Tab",
+    apiKeyRequired: "API Key Required",
+    apiKeyRequiredDesc: "Please configure your API key in settings",
+    settings: "Settings",
+    groupType: "Group Type",
+    add: "Add",
+    delete: "Delete",
+    groupExistingTabs: "Group Tabs",
+    ungroupAll: "Ungroup All",
+    allowAutomaticGrouping: "Auto Grouping",
+    allowAutomaticPosition: "Auto Position",
+  },
+  zh: {
+    title: "AI 标签分组",
+    apiKeyRequired: "需要 API 密钥",
+    apiKeyRequiredDesc: "请先在设置中配置 API 密钥",
+    settings: "设置",
+    groupType: "分组类型",
+    add: "添加",
+    delete: "删除",
+    groupExistingTabs: "分组标签页",
+    ungroupAll: "取消分组",
+    allowAutomaticGrouping: "自动分组",
+    allowAutomaticPosition: "自动定位",
+  },
+};
+
 const getApiKeyHrefMap = {
   Gemini: "https://ai.google.dev/",
   GPT: "https://platform.openai.com/api-keys",
+  DeepSeek: "https://platform.deepseek.com/",
+  Claude: "https://console.anthropic.com/settings/keys",
+  Qwen: "https://dashscope.console.aliyun.com/apiKey",
 };
 
-const Group = () => {
+const Group = ({ language }: { language: Language }) => {
   const [types, setTypes] = useState<string[]>([]);
   const [newType, setNewType] = useState<string>("");
   const [color, setColor] = useState<Color>(Color.grey);
   const [colors, setColors] = useState<Color[]>([]);
   const [colorsEnabled, setColorsEnabled] = useState<boolean>(false);
+  const t = translations[language];
 
-  // TODO this useEffect is hacky, need to find a better way to do this
   useEffect(() => {
     getStorage<string[]>("types").then((types) => {
       if (!types) {
@@ -43,7 +77,7 @@ const Group = () => {
   }, []);
 
   return (
-    <div className="flex flex-col gap-y-2 mb-2">
+    <div className="flex flex-col gap-y-2 mb-3">
       <form
         onSubmit={(e) => {
           if (!newType) {
@@ -71,7 +105,7 @@ const Group = () => {
           <Input
             type="text"
             value={newType}
-            placeholder="Group Type"
+            placeholder={t.groupType}
             onChange={(e) => {
               setNewType(e.target.value);
             }}
@@ -79,11 +113,9 @@ const Group = () => {
           {colorsEnabled && <ColorPicker color={color} onChange={setColor} />}
           <button
             disabled={!newType}
-            className="rounded-md w-fit bg-primary/lg px-2.5 py-1.5 text-sm font-semibold
-      text-white shadow-sm hover:bg-primary focus-visible:outline focus-visible:outline-2
-      focus-visible:outline-offset-2 disabled:bg-primary/sm"
+            className="rounded-md w-fit bg-primary/lg px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:bg-primary/sm whitespace-nowrap"
           >
-            Add
+            {t.add}
           </button>
         </div>
       </form>
@@ -91,7 +123,7 @@ const Group = () => {
       {types?.map((type, idx) => (
         <div className="flex items-center gap-x-2" key={idx}>
           <Input
-            placeholder="Group Type"
+            placeholder={t.groupType}
             value={type}
             onChange={(e) => {
               const newTypes = [...types];
@@ -116,15 +148,14 @@ const Group = () => {
               const newColors = [...colors];
               newTypes.splice(idx, 1);
               newColors.splice(idx, 1);
-
               setTypes(newTypes);
               setColors(newColors);
               setStorage<string[]>("types", newTypes);
               setStorage<string[]>("colors", newColors);
             }}
-            className="select-none"
+            className="select-none whitespace-nowrap"
           >
-            Delete
+            {t.delete}
           </button>
         </div>
       ))}
@@ -133,9 +164,8 @@ const Group = () => {
 };
 
 const Popup = () => {
-  const [serviceProvider, setServiceProvider] = useState<ServiceProvider>(
-    "GPT"
-  );
+  const [serviceProvider, setServiceProvider] =
+    useState<ServiceProvider>("GPT");
   const [apiKey, setApiKey] = useState<string | undefined>("");
   const [types, setTypes] = useState<string[]>([]);
   const [isOn, setIsOn] = useState<boolean | undefined>(true);
@@ -143,9 +173,8 @@ const Popup = () => {
     false
   );
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isValidating, setIsValidating] = useState<boolean>(false);
+  const [language, setLanguage] = useState<Language>("zh");
 
-  // TODO this useEffect is hacky, need to find a better way to do this
   useEffect(() => {
     getStorage<string>("openai_key").then(setApiKey);
     getStorage<boolean>("isOn").then(setIsOn);
@@ -163,18 +192,16 @@ const Popup = () => {
         setServiceProvider(value);
       }
     });
+    getStorage<Language>("language").then((lang) => {
+      if (lang === "en" || lang === "zh") {
+        setLanguage(lang);
+      }
+    });
   }, []);
-
-  const updateOpenAIKey = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    setApiKey(e.target.value);
-  }, []);
-
-  const updateKeyInStorage = useCallback(() => {
-    setStorage("openai_key", apiKey);
-  }, [apiKey]);
 
   const getAllTabsInfo = async () => {
     if (!apiKey || !types || !types.length) {
+      toast.warn(translations[language].apiKeyRequired);
       return;
     }
     try {
@@ -223,108 +250,71 @@ const Popup = () => {
     }
   };
 
-  const handleValidateOpenAIKey = async () => {
-    if (!apiKey || apiKey.length <= 0) {
-      toast.warn("Please enter an API key");
-      return false;
-    }
-    setIsValidating(true);
-    await validateApiKey(apiKey, serviceProvider);
-    setIsValidating(false);
-  };
+  const t = translations[language];
+  const hasApiKey = apiKey && apiKey.length > 0;
 
   return (
-    <div className="p-6 pb-9 min-w-[24rem] ">
+    <div className="p-6 pb-9 min-w-[28rem]">
       <div className="flex items-center mb-6 justify-between">
-        <h1 className="text-xl font-bold">AI Group Tab</h1>
-
+        <h1 className="text-xl font-bold">{t.title}</h1>
         <button
           onClick={() => {
             chrome.runtime.openOptionsPage();
           }}
+          className="flex items-center gap-x-1 text-sm text-gray-600 hover:text-gray-900"
         >
-          <img src="/cog.svg" alt="cog" className="w-6 h-6" />
+          <img src="/cog.svg" alt="cog" className="w-5 h-5" />
+          {t.settings}
         </button>
       </div>
 
-      <div className="relative mb-2">
-        <label
-          className="absolute -top-2 left-2 inline-block bg-white px-1 text-xs font-medium text-gray-900"
-          htmlFor="openai-key"
-        >
-          API Key
-        </label>
-
-        <div className="flex items-center gap-x-2">
-          <Input
-            id="openai-key"
-            type="password"
-            onChange={updateOpenAIKey}
-            onBlur={updateKeyInStorage}
-            value={apiKey}
-            placeholder="Your OpenAI Key"
-          />
-
-          <button
-            onClick={handleValidateOpenAIKey}
-            disabled={!apiKey}
-            className="rounded-md flex items-center w-fit bg-primary/lg px-2.5 py-1.5 text-sm font-semibold
-            text-white shadow-sm hover:bg-primary focus-visible:outline focus-visible:outline-2
-            focus-visible:outline-offset-2 disabled:bg-primary/sm"
-          >
-            {isValidating && <LoadingSpinner />}
-            Validate
-          </button>
-        </div>
-      </div>
-
-      {!apiKey?.length && (
-        <div className="text-sm text-gray-500 mb-2">
-          You can get your key from{" "}
-          <a
-            href={getApiKeyHrefMap[serviceProvider] || getApiKeyHrefMap.GPT}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary/lg underline underline-offset-2 hover:text-primary"
-          >
-            here
-          </a>
+      {!hasApiKey && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+          <p className="text-sm text-yellow-800">
+            {t.apiKeyRequiredDesc} -{" "}
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                chrome.runtime.openOptionsPage();
+              }}
+              className="text-yellow-600 hover:text-yellow-800 font-medium underline"
+            >
+              {t.settings}
+            </a>
+          </p>
         </div>
       )}
 
-      <Group />
+      <Group language={language} />
 
-      <div className="flex items-center gap-x-4">
+      <div className="flex items-center gap-x-3 mb-3">
         <button
-          disabled={!apiKey || !types || !types.length}
-          className="inline-flex items-center rounded-md bg-primary/lg px-2.5 py-1.5 text-sm font-semibold
-        text-white shadow-sm hover:bg-primary focus-visible:outline cursor-pointer
-        focus-visible:outline-2 focus-visible:outline-offset-2"
+          disabled={!hasApiKey || !types || !types.length}
+          className="inline-flex items-center rounded-md bg-primary/lg px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary focus-visible:outline cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 disabled:bg-primary/sm whitespace-nowrap"
           onClick={getAllTabsInfo}
         >
           {isLoading && <LoadingSpinner />}
-          Group Existing Tabs
+          {t.groupExistingTabs}
         </button>
 
         <button
-          className="inline-flex items-center rounded-md bg-primary/lg px-2.5 py-1.5 text-sm font-semibold
-        text-white shadow-sm hover:bg-primary focus-visible:outline cursor-pointer
-        focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="inline-flex items-center rounded-md bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-300 focus-visible:outline cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 whitespace-nowrap"
           onClick={ungroup}
         >
-          Ungroup All
+          {t.ungroupAll}
         </button>
       </div>
 
       <Switch
         isChecked={!!isOn}
-        text="Allow automatic grouping"
+        text={t.allowAutomaticGrouping}
         onChange={disableGrouping}
       />
 
       <Switch
         isChecked={!!isAutoPosition}
-        text="Allow automatic position"
+        text={t.allowAutomaticPosition}
         onChange={enableAutoPosition}
       />
     </div>

@@ -6,6 +6,61 @@ Demo Video:
 
 > [![Watch the video](https://img.youtube.com/vi/SjfKiXy3zOc/default.jpg)](https://youtu.be/SjfKiXy3zOc)
 
+## Features
+
+- 🤖 Group tabs with AI by custom categories
+- 🔑 Support multiple LLM providers (OpenAI GPT, DeepSeek, Claude, Qwen, Gemini)
+- 🌐 Multi-language support (English & 中文)
+- 🎨 Custom categories and colors
+- 🔄 Automatic tab grouping
+- ⚙️ Custom model and API server support
+
+## Supported LLM Providers
+
+| Provider               | Default Model            | API URL                                                                            |
+| ---------------------- | ------------------------ | ---------------------------------------------------------------------------------- |
+| **OpenAI GPT**         | gpt-3.5-turbo            | https://api.openai.com/v1/chat/completions                                         |
+| **DeepSeek**           | deepseek-chat            | https://api.deepseek.com/chat/completions                                          |
+| **Anthropic Claude**   | claude-3-sonnet-20240229 | https://api.anthropic.com/v1/messages                                              |
+| **Alibaba Cloud Qwen** | qwen-turbo               | https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions                 |
+| **Google Gemini**      | gemini-pro               | https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent |
+
+## Download and Start Using
+
+### Download from Chrome Web Store
+
+https://chromewebstore.google.com/detail/ai-group-tabs/hihpejmkeabgeockcemeikfkkbdofhji
+
+### Download from source
+
+Download the latest released `dist.zip` from [the release page](https://github.com/MichaelYuhe/ai-group-tabs/releases), unzip after download, you will get a folder named `dist`.
+
+Open Chrome, go to `chrome://extensions/`, turn on `Developer mode` on the top right corner, click `Load unpacked` on the top left corner, select the `dist` folder you just unziled.
+
+> You can change the model and API server in the options page.
+
+## Quick Start
+
+1. Click the extension icon to open the popup
+2. Click "Settings" to configure your API key
+3. Select your preferred LLM provider (GPT, DeepSeek, Claude, Qwen, or Gemini)
+4. Enter your API key and click "Validate" to verify
+5. Go back to popup and add your custom group types
+6. Click "Group Tabs" to organize your tabs
+
+## Development
+
+```bash
+# Install dependencies
+pnpm install
+
+# Development
+pnpm dev
+
+# Build
+pnpm build
+```
+
 ## Roadmap
 
 - [x] Group tabs with AI by default categories
@@ -20,33 +75,9 @@ Demo Video:
 - [x] Use Vite and pnpm
 - [x] Group the updated tab only when a tab is updated
 - [x] Custom model and API server
-
-## Download and Start Using
-
-### Download from Chrome Web Store
-
-https://chromewebstore.google.com/detail/ai-group-tabs/hihpejmkeabgeockcemeikfkkbdofhji
-
-### Download from source
-
-Download the latest released `dist.zip` from [the release page](https://github.com/MichaelYuhe/ai-group-tabs/releases), unzip after download, you will get a folder named `dist`.
-
-Open Chrome, go to `chrome://extensions/`, turn on `Developer mode` on the top right corner, click `Load unpacked` on the top left corner, select the `dist` folder you just unzipped.
-
-> You can change the model and API server in the options page.
-
-## Development
-
-```bash
-# Install dependencies
-pnpm install
-
-# Development
-pnpm dev
-
-# Build
-pnpm build
-```
+- [x] Support multiple LLM providers (DeepSeek, Claude, Qwen)
+- [x] Multi-language support (English & 中文)
+- [x] Move API key configuration to settings page
 
 ## Special Thanks
 

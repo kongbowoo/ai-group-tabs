@@ -95,7 +95,31 @@ export const validateApiKey = async (
         toast.error("Invalid Gemini Key: " + response.status + " " + txt);
         return false;
       }
+    } else if (serviceProvider === "Claude") {
+      // https://docs.anthropic.com/claude/reference/messages_post
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-3-sonnet-20240229",
+          max_tokens: 10,
+          messages: [{ role: "user", content: "Hi" }],
+        }),
+      });
+      if (response.ok) {
+        toast.success("Valid Claude Key");
+        return true;
+      } else {
+        const txt = await response.text();
+        toast.error("Invalid Claude Key: " + response.status + " " + txt);
+        return false;
+      }
     } else {
+      // GPT and DeepSeek (both use OpenAI-compatible API)
       const apiURL =
         (await getStorage("apiURL")) ||
         "https://api.openai.com/v1/chat/completions";
@@ -125,20 +149,20 @@ export const validateApiKey = async (
         }),
       });
       if (response.ok) {
-        toast.success("Valid OpenAI Key");
+        toast.success("Valid API Key");
         return true;
       } else {
         const txt = await response.text();
-        toast.error("Invalid OpenAI Key: " + response.status + " " + txt);
+        toast.error("Invalid API Key: " + response.status + " " + txt);
         return false;
       }
     }
   } catch (error) {
     console.error(error);
     if (error instanceof Error) {
-      toast.error("Invalid OpenAI Key: " + error.message);
+      toast.error("Invalid API Key: " + error.message);
     } else {
-      toast.error("Invalid OpenAI Key");
+      toast.error("Invalid API Key");
     }
     return false;
   }
