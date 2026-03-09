@@ -1,20 +1,31 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+# Project context
+context: |
+  Tech stack: TypeScript, React 18, Vite 5, Tailwind CSS
+  Platform: Chrome Extension (Manifest V3)
+  Package manager: pnpm
+  We use conventional commits
+  Domain: Browser tab management with AI classification
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Architecture:
+  - popup.tsx: Popup UI for triggering grouping and managing categories
+  - options.tsx: Settings page for API keys, providers, language
+  - background.ts: Service Worker for auto-grouping on tab create/update
+  - service-provider/: LLM provider implementations (GPT, DeepSeek, Claude, Qwen, Gemini, Custom)
+
+  Key features:
+  - Multi-LLM support with OpenAI-compatible API format
+  - Bilingual support (English and Chinese)
+  - Auto-grouping with customizable categories
+  - URL filtering rules
+
+# Per-artifact rules
+rules:
+  proposal:
+    - Keep proposals concise and actionable
+    - Include acceptance criteria
+  code:
+    - Use TypeScript for all new code
+    - Follow existing code style (prettier)
+    - Add proper type definitions
