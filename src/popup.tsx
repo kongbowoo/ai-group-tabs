@@ -113,19 +113,25 @@ const Group = ({ language }: { language: Language }) => {
         setStorage<string[]>("types", defaultTypes);
         return;
       }
-      setStoredTypes(types);
 
-      // Determine display types based on language and stored types
+      // Migrate English default types to Chinese if language is Chinese
       if (language === "zh" && isDefaultEnglishTypes(types)) {
-        // Stored in English, but display in Chinese
+        setStoredTypes(DEFAULT_GROUP_ZH);
         setDisplayTypes(DEFAULT_GROUP_ZH);
-      } else if (language === "en" && isDefaultChineseTypes(types)) {
-        // Stored in Chinese, but display in English
-        setDisplayTypes(DEFAULT_GROUP);
-      } else {
-        // Custom types or matching language, display as stored
-        setDisplayTypes(types);
+        setStorage<string[]>("types", DEFAULT_GROUP_ZH);
+        return;
       }
+
+      // Migrate Chinese default types to English if language is English
+      if (language === "en" && isDefaultChineseTypes(types)) {
+        setStoredTypes(DEFAULT_GROUP);
+        setDisplayTypes(DEFAULT_GROUP);
+        setStorage<string[]>("types", DEFAULT_GROUP);
+        return;
+      }
+
+      setStoredTypes(types);
+      setDisplayTypes(types);
     });
     getStorage<Color[]>("colors").then((colors) => {
       if (colors) setColors(colors);
