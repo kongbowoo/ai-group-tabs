@@ -92,8 +92,15 @@ const isDefaultChineseTypes = (types: string[]): boolean => {
   );
 };
 
-const Group = ({ language }: { language: Language }) => {
-  const [storedTypes, setStoredTypes] = useState<string[]>([]);
+const Group = ({
+  language,
+  types,
+  onUpdateTypes,
+}: {
+  language: Language;
+  types: string[];
+  onUpdateTypes: (newTypes: string[]) => void;
+}) => {
   const [displayTypes, setDisplayTypes] = useState<string[]>([]);
   const [newType, setNewType] = useState<string>("");
   const [color, setColor] = useState<Color>(Color.grey);
@@ -101,29 +108,34 @@ const Group = ({ language }: { language: Language }) => {
   const [colorsEnabled, setColorsEnabled] = useState<boolean>(false);
   const t = translations[language];
 
-  // Load types from storage
+  // Initialize display types from props
   useEffect(() => {
-    getStorage<string[]>("types").then((types) => {
-      if (!types) {
-        // Initialize with default based on language
-        const defaultTypes =
-          language === "zh" ? DEFAULT_GROUP_ZH : DEFAULT_GROUP;
-        setStoredTypes(defaultTypes);
-        setDisplayTypes(defaultTypes);
-        setStorage<string[]>("types", defaultTypes);
-        return;
-      }
+    if (types.length === 0) return;
+    setDisplayTypes(types);
+  }, [types]);
 
-      setStoredTypes(types);
-      setDisplayTypes(types);
-    });
+  // Load colors from storage
+  useEffect(() => {
     getStorage<Color[]>("colors").then((colors) => {
       if (colors) setColors(colors);
     });
     getStorage<boolean>("colorsEnabled").then((colorsEnabled) => {
       if (colorsEnabled !== undefined) setColorsEnabled(colorsEnabled);
     });
-  }, [language]);
+  }, []);
+
+  // Update display types when language changes (for migration scenario)
+  useEffect(() => {
+    if (types.length === 0) return;
+
+    if (language === "zh" && isDefaultEnglishTypes(types)) {
+      setDisplayTypes(DEFAULT_GROUP_ZH);
+    } else if (language === "en" && isDefaultChineseTypes(types)) {
+      setDisplayTypes(DEFAULT_GROUP);
+    } else {
+      setDisplayTypes(types);
+    }
+  }, [language, types]);
 
   return (
     <div className="flex flex-col gap-y-2 mb-3">
@@ -135,8 +147,8 @@ const Group = ({ language }: { language: Language }) => {
           if (!newType) {
             return;
           }
-          const newStoredTypes = [...storedTypes, newType];
           const newDisplayTypes = [...displayTypes, newType];
+          const newTypes = [...types, newType];
           const newColors = colorsEnabled
             ? [...colors, color]
             : [
@@ -146,12 +158,12 @@ const Group = ({ language }: { language: Language }) => {
                 ],
               ];
           setNewType("");
-          setStoredTypes(newStoredTypes);
           setDisplayTypes(newDisplayTypes);
           setColors(newColors);
           e.preventDefault();
 
-          setStorage<string[]>("types", newStoredTypes);
+          onUpdateTypes(newTypes);
+          setStorage<string[]>("types", newTypes);
           setStorage<string[]>("colors", newColors);
         }}
       >
@@ -185,18 +197,15 @@ const Group = ({ language }: { language: Language }) => {
               setDisplayTypes(newDisplayTypes);
 
               // Update stored types with the new value
-              // If it's a Chinese default type, convert to English for storage
               const newValue = reverseTranslateCategory(e.target.value);
-              const newStoredTypes = [...storedTypes];
-              if (isDefaultChineseTypes(storedTypes)) {
-                // Currently storing in Chinese, update directly
-                newStoredTypes[idx] = e.target.value;
+              const newTypes = [...types];
+              if (isDefaultChineseTypes(types)) {
+                newTypes[idx] = e.target.value;
               } else {
-                // Currently storing in English, convert new value
-                newStoredTypes[idx] = newValue;
+                newTypes[idx] = newValue;
               }
-              setStoredTypes(newStoredTypes);
-              setStorage<string[]>("types", newStoredTypes);
+              onUpdateTypes(newTypes);
+              setStorage<string[]>("types", newTypes);
             }}
           />
           {colorsEnabled && (
@@ -212,13 +221,14 @@ const Group = ({ language }: { language: Language }) => {
           )}
           <button
             onClick={() => {
-              const newStoredTypes = [...storedTypes];
               const newDisplayTypes = [...displayTypes];
-              newStoredTypes.splice(idx, 1);
               newDisplayTypes.splice(idx, 1);
-              setStoredTypes(newStoredTypes);
               setDisplayTypes(newDisplayTypes);
-              setStorage<string[]>("types", newStoredTypes);
+
+              const newTypes = [...types];
+              newTypes.splice(idx, 1);
+              onUpdateTypes(newTypes);
+              setStorage<string[]>("types", newTypes);
             }}
             className="rounded-md px-3 py-1.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 whitespace-nowrap"
           >
@@ -346,6 +356,10 @@ const Popup = () => {
     }
   };
 
+  const updateTypes = (newTypes: string[]) => {
+    setTypes(newTypes);
+  };
+
   const t = translations[language || "zh"];
   const hasApiKey = apiKey && apiKey.length > 0;
 
@@ -391,7 +405,7 @@ const Popup = () => {
         </div>
       )}
 
-      <Group language={language} />
+      <Group language={language} types={types} onUpdateTypes={updateTypes} />
 
       <div className="flex items-center gap-x-3 mb-3">
         <button
