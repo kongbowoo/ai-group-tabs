@@ -48,7 +48,8 @@ const getApiKeyHrefMap = {
   GPT: "https://platform.openai.com/api-keys",
   DeepSeek: "https://platform.deepseek.com/",
   Claude: "https://console.anthropic.com/settings/keys",
-  Qwen: "https://dashscope.console.aliyun.com/apiKey",
+  Qwen: "https://dashscope.console.aliyuncs.com/apiKey",
+  Custom: "#",
 };
 
 const Group = ({ language }: { language: Language }) => {
@@ -78,6 +79,9 @@ const Group = ({ language }: { language: Language }) => {
 
   return (
     <div className="flex flex-col gap-y-2 mb-3">
+      <div className="flex items-center gap-x-2 mb-2">
+        <h2 className="text-sm font-medium text-gray-700">{t.groupType}</h2>
+      </div>
       <form
         onSubmit={(e) => {
           if (!newType) {
@@ -153,7 +157,7 @@ const Group = ({ language }: { language: Language }) => {
               setStorage<string[]>("types", newTypes);
               setStorage<string[]>("colors", newColors);
             }}
-            className="select-none whitespace-nowrap"
+            className="rounded-md px-3 py-1.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 whitespace-nowrap"
           >
             {t.delete}
           </button>
@@ -164,8 +168,9 @@ const Group = ({ language }: { language: Language }) => {
 };
 
 const Popup = () => {
-  const [serviceProvider, setServiceProvider] =
-    useState<ServiceProvider>("GPT");
+  const [serviceProvider, setServiceProvider] = useState<ServiceProvider>(
+    "GPT"
+  );
   const [apiKey, setApiKey] = useState<string | undefined>("");
   const [types, setTypes] = useState<string[]>([]);
   const [isOn, setIsOn] = useState<boolean | undefined>(true);
