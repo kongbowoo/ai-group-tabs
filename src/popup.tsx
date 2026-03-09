@@ -92,6 +92,28 @@ const isDefaultChineseTypes = (types: string[]): boolean => {
   );
 };
 
+// Convert English default types to Chinese if they match
+const convertToChineseIfDefault = (types: string[]): string[] => {
+  return types.map((type) => {
+    const index = DEFAULT_GROUP.indexOf(type);
+    if (index !== -1) {
+      return DEFAULT_GROUP_ZH[index];
+    }
+    return type;
+  });
+};
+
+// Convert Chinese default types to English if they match
+const convertToEnglishIfDefault = (types: string[]): string[] => {
+  return types.map((type) => {
+    const index = DEFAULT_GROUP_ZH.indexOf(type);
+    if (index !== -1) {
+      return DEFAULT_GROUP[index];
+    }
+    return type;
+  });
+};
+
 const Group = ({
   language,
   types,
@@ -108,11 +130,23 @@ const Group = ({
   const [colorsEnabled, setColorsEnabled] = useState<boolean>(false);
   const t = translations[language];
 
-  // Initialize display types from props
+  // Update display types based on language and types
   useEffect(() => {
     if (types.length === 0) return;
-    setDisplayTypes(types);
-  }, [types]);
+
+    // If language is Chinese, convert English default types to Chinese
+    if (language === "zh") {
+      setDisplayTypes(convertToChineseIfDefault(types));
+    }
+    // If language is English, convert Chinese default types to English
+    else if (language === "en") {
+      setDisplayTypes(convertToEnglishIfDefault(types));
+    }
+    // Otherwise, show the types as-is
+    else {
+      setDisplayTypes(types);
+    }
+  }, [language, types]);
 
   // Load colors from storage
   useEffect(() => {
@@ -123,19 +157,6 @@ const Group = ({
       if (colorsEnabled !== undefined) setColorsEnabled(colorsEnabled);
     });
   }, []);
-
-  // Update display types when language changes (for migration scenario)
-  useEffect(() => {
-    if (types.length === 0) return;
-
-    if (language === "zh" && isDefaultEnglishTypes(types)) {
-      setDisplayTypes(DEFAULT_GROUP_ZH);
-    } else if (language === "en" && isDefaultChineseTypes(types)) {
-      setDisplayTypes(DEFAULT_GROUP);
-    } else {
-      setDisplayTypes(types);
-    }
-  }, [language, types]);
 
   return (
     <div className="flex flex-col gap-y-2 mb-3">
@@ -197,13 +218,9 @@ const Group = ({
               setDisplayTypes(newDisplayTypes);
 
               // Update stored types with the new value
-              const newValue = reverseTranslateCategory(e.target.value);
+              // Keep the same value in storage as displayed
               const newTypes = [...types];
-              if (isDefaultChineseTypes(types)) {
-                newTypes[idx] = e.target.value;
-              } else {
-                newTypes[idx] = newValue;
-              }
+              newTypes[idx] = e.target.value;
               onUpdateTypes(newTypes);
               setStorage<string[]>("types", newTypes);
             }}
@@ -270,17 +287,25 @@ const Popup = () => {
           return;
         }
 
-        // Migrate English default types to Chinese if language is Chinese
-        if (loadedLanguage === "zh" && isDefaultEnglishTypes(storedTypes)) {
-          setTypes(DEFAULT_GROUP_ZH);
-          setStorage<string[]>("types", DEFAULT_GROUP_ZH);
+        // Convert English default types to Chinese if language is Chinese
+        if (loadedLanguage === "zh") {
+          const convertedTypes = convertToChineseIfDefault(storedTypes);
+          setTypes(convertedTypes);
+          // Only update storage if types were actually converted
+          if (isDefaultEnglishTypes(storedTypes)) {
+            setStorage<string[]>("types", convertedTypes);
+          }
           return;
         }
 
-        // Migrate Chinese default types to English if language is English
-        if (loadedLanguage === "en" && isDefaultChineseTypes(storedTypes)) {
-          setTypes(DEFAULT_GROUP);
-          setStorage<string[]>("types", DEFAULT_GROUP);
+        // Convert Chinese default types to English if language is English
+        if (loadedLanguage === "en") {
+          const convertedTypes = convertToEnglishIfDefault(storedTypes);
+          setTypes(convertedTypes);
+          // Only update storage if types were actually converted
+          if (isDefaultChineseTypes(storedTypes)) {
+            setStorage<string[]>("types", convertedTypes);
+          }
           return;
         }
 
