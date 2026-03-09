@@ -11,6 +11,35 @@ export const DEFAULT_GROUP = [
   "Utilities",
 ];
 
+export const DEFAULT_GROUP_ZH = [
+  "社交",
+  "娱乐",
+  "阅读材料",
+  "教育",
+  "生产力",
+  "工具",
+];
+
+// Map English category names to Chinese
+export const CATEGORY_TRANSLATIONS: Record<string, string> = {
+  Social: "社交",
+  Entertainment: "娱乐",
+  "Read Material": "阅读材料",
+  Education: "教育",
+  Productivity: "生产力",
+  Utilities: "工具",
+};
+
+// Map Chinese category names to English
+export const CATEGORY_TRANSLATIONS_REVERSE: Record<string, string> = {
+  社交: "Social",
+  娱乐: "Entertainment",
+  阅读材料: "Read Material",
+  教育: "Education",
+  生产力: "Productivity",
+  工具: "Utilities",
+};
+
 export enum Color {
   grey = "grey",
   blue = "blue",

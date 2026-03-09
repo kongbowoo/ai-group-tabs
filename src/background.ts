@@ -1,4 +1,9 @@
-import { Color, DEFAULT_GROUP, DEFAULT_PROMPT } from "./const";
+import {
+  Color,
+  DEFAULT_GROUP,
+  DEFAULT_GROUP_ZH,
+  DEFAULT_PROMPT,
+} from "./const";
 import { handleOneTab } from "./services";
 import {
   getRootDomain,
@@ -10,12 +15,16 @@ import {
   curryFilterManualGroups,
 } from "./utils";
 
+type Language = "en" | "zh";
+
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
     setStorage<boolean>("isOn", true);
     setStorage<boolean>("isAutoPosition", false);
-    setStorage<string[]>("types", DEFAULT_GROUP);
+    // Set default types based on language (default to Chinese for now)
+    setStorage<string[]>("types", DEFAULT_GROUP_ZH);
     setStorage<string>("prompt", DEFAULT_PROMPT);
+    setStorage<Language>("language", "zh");
   }
 });
 
@@ -82,7 +91,7 @@ chrome.tabGroups.onUpdated.addListener(async (group) => {
   }
 
   const types = await getStorage<string[]>("types");
-  // 更新types中的群组条目
+  // 更新 types 中的群组条目
   if (types && types.length > 0) {
     if (!tabGroupMap[group.id]) {
       createdManualType(types, group);
