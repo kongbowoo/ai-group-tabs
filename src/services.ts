@@ -118,6 +118,48 @@ export const validateApiKey = async (
         toast.error("Invalid Claude Key: " + response.status + " " + txt);
         return false;
       }
+    } else if (serviceProvider === "Custom") {
+      // Custom API (OpenAI-compatible format)
+      const apiURL =
+        (await getStorage("customApiURL")) ||
+        "https://api.openai.com/v1/chat/completions";
+      const model = (await getStorage("customModel")) || "custom-model";
+
+      if (!apiURL) {
+        toast.error("Please enter a custom API URL");
+        return false;
+      }
+
+      const response = await fetch(apiURL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: "system",
+              content: "ping",
+            },
+          ],
+          max_tokens: 1,
+          temperature: 0.5,
+          top_p: 1,
+          frequency_penalty: 0,
+          presence_penalty: 0,
+          stop: ["\n"],
+        }),
+      });
+      if (response.ok) {
+        toast.success("Valid API Key");
+        return true;
+      } else {
+        const txt = await response.text();
+        toast.error("Invalid API Key: " + response.status + " " + txt);
+        return false;
+      }
     } else {
       // GPT and DeepSeek (both use OpenAI-compatible API)
       const apiURL =

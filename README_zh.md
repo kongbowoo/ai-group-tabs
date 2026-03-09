@@ -12,6 +12,7 @@
 
 - 🤖 使用 AI 根据自定义类别分组标签页
 - 🔑 支持多个大模型提供商 (OpenAI GPT、DeepSeek、Claude、通义千问、Gemini)
+- 🌟 **支持自定义大模型** - 可使用任何 OpenAI 兼容格式的 API
 - 🌐 多语言支持（English 和 中文）
 - 🎨 自定义类别和颜色
 - 🔄 自动分组标签页
@@ -26,6 +27,7 @@
 | **Anthropic Claude** | claude-3-sonnet-20240229 | https://api.anthropic.com/v1/messages                                              |
 | **阿里云通义千问**   | qwen-turbo               | https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions                 |
 | **Google Gemini**    | gemini-pro               | https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent |
+| **自定义大模型**     | 任意模型                 | 任意 OpenAI 兼容格式的 API 端点                                                    |
 
 ## 下载和使用
 
@@ -45,10 +47,51 @@ https://chromewebstore.google.com/detail/ai-group-tabs/hihpejmkeabgeockcemeikfkk
 
 1. 点击扩展图标打开弹出窗口
 2. 点击"设置"配置您的 API 密钥
-3. 选择您偏好的大模型提供商（GPT、DeepSeek、Claude、通义千问或 Gemini）
+3. 选择您偏好的大模型提供商（GPT、DeepSeek、Claude、通义千问、Gemini 或自定义）
 4. 输入您的 API 密钥并点击"验证"进行确认
 5. 返回弹出窗口添加您的自定义分组类型
 6. 点击"分组标签页"整理您的标签
+
+### 使用自定义大模型
+
+如果您想使用未在上面列出的大模型提供商：
+
+1. 进入设置页面
+2. 选择 **"自定义大模型"** 作为服务提供者
+3. 输入您的自定义 API 地址（必须是 OpenAI 兼容格式）
+4. 输入您的自定义模型名称
+5. 输入您的 API 密钥
+6. 点击"验证"测试连接
+
+**API 格式要求：**
+
+自定义 API 需要遵循 OpenAI chat completion 格式：
+
+```json
+POST {你的 API 地址}
+Headers: { "Authorization": "Bearer {你的 API 密钥}" }
+Body: {
+  "model": "{你的模型名称}",
+  "messages": [
+    { "role": "system", "content": "You are a browser tab group classificator" },
+    { "role": "user", "content": "Classify the tab..." }
+  ]
+}
+```
+
+响应格式：
+
+```json
+{
+  "choices": [
+    {
+      "message": {
+        "content": "类别名称"
+      }
+    }
+  ]
+}
+```
 
 ## 开发
 
@@ -80,6 +123,7 @@ pnpm build
 - [x] 支持多个大模型提供商（DeepSeek、Claude、通义千问）
 - [x] 多语言支持（English 和 中文）
 - [x] 将 API 密钥配置移到设置页面
+- [x] 自定义大模型支持（任何 OpenAI 兼容 API）
 
 ## 特别感谢
 

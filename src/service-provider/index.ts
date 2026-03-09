@@ -5,6 +5,7 @@ import { fetchGpt } from "./gpt";
 import { fetchDeepSeek } from "./deepseek";
 import { fetchClaude } from "./anthropic";
 import { fetchQwen } from "./qwen";
+import { fetchCustom } from "./custom";
 
 const fetchMap = {
   GPT: fetchGpt,
@@ -12,6 +13,7 @@ const fetchMap = {
   DeepSeek: fetchDeepSeek,
   Claude: fetchClaude,
   Qwen: fetchQwen,
+  Custom: fetchCustom,
 } as const;
 
 export const fetchType = async (

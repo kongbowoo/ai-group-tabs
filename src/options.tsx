@@ -21,6 +21,8 @@ const translations = {
     ],
     chooseServiceProvider: "Choose a service provider",
     chooseModel: "Choose a model",
+    customModelName: "Model Name",
+    customModelNamePlaceholder: "Enter custom model name",
     apiKeyUrl: "API URL",
     apiKey: "API Key",
     filterRule: "Filter Rule",
@@ -33,11 +35,14 @@ const translations = {
     language: "Language",
     validate: "Validate",
     pleaseEnterApiKey: "Please enter an API key",
+    customApiUrlPlaceholder: "Enter custom API URL (OpenAI-compatible format)",
   },
   zh: {
     tabs: ["基本设置", "提示词设置", "样式设置", "功能开关"],
     chooseServiceProvider: "选择服务提供者",
     chooseModel: "选择模型",
+    customModelName: "模型名称",
+    customModelNamePlaceholder: "输入自定义模型名称",
     apiKeyUrl: "API 地址",
     apiKey: "API 密钥",
     filterRule: "过滤规则",
@@ -49,6 +54,7 @@ const translations = {
     language: "语言",
     validate: "验证",
     pleaseEnterApiKey: "请输入 API 密钥",
+    customApiUrlPlaceholder: "输入自定义 API 地址（OpenAI 兼容格式）",
   },
 };
 
@@ -59,6 +65,7 @@ const serviceProviderTranslations = {
     Claude: "Anthropic Claude",
     Qwen: "Alibaba Cloud Qwen",
     Gemini: "Google Gemini",
+    Custom: "Custom LLM",
   },
   zh: {
     GPT: "OpenAI GPT",
@@ -66,6 +73,7 @@ const serviceProviderTranslations = {
     Claude: "Anthropic Claude",
     Qwen: "阿里云通义千问",
     Gemini: "Google Gemini",
+    Custom: "自定义大模型",
   },
 };
 
@@ -108,11 +116,14 @@ const modelTranslations = {
 
 function BasicSettings({ language }: { language: Language }) {
   const [model, setModel] = useState<string | undefined>("gpt-3.5-turbo");
-  const [serviceProvider, setServiceProvider] =
-    useState<ServiceProvider>("GPT");
+  const [customModel, setCustomModel] = useState<string | undefined>("");
+  const [serviceProvider, setServiceProvider] = useState<ServiceProvider>(
+    "GPT"
+  );
   const [apiURL, setApiURL] = useState<string | undefined>(
     "https://api.openai.com/v1/chat/completions"
   );
+  const [customApiURL, setCustomApiURL] = useState<string | undefined>("");
   const [apiKey, setApiKey] = useState<string | undefined>("");
   const [filterRules, setFilterRules] = useState<FilterRuleItem[] | undefined>([
     { id: 0, type: "DOMAIN", rule: "" },
@@ -129,6 +140,12 @@ function BasicSettings({ language }: { language: Language }) {
     getStorage<string>("apiURL").then(setApiURL);
     getStorage<string>("openai_key").then(setApiKey);
     getStorage<FilterRuleItem[]>("filterRules").then(setFilterRules);
+    getStorage<string>("customModel").then((savedCustomModel) => {
+      if (savedCustomModel) setCustomModel(savedCustomModel);
+    });
+    getStorage<string>("customApiURL").then((savedCustomURL) => {
+      if (savedCustomURL) setCustomApiURL(savedCustomURL);
+    });
   }, []);
 
   const updateModel = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
@@ -162,6 +179,16 @@ function BasicSettings({ language }: { language: Language }) {
   const updateApiURL = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     setApiURL(e.target.value);
     setStorage("apiURL", e.target.value);
+  }, []);
+
+  const updateCustomApiURL = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    setCustomApiURL(e.target.value);
+    setStorage("customApiURL", e.target.value);
+  }, []);
+
+  const updateCustomModel = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    setCustomModel(e.target.value);
+    setStorage("customModel", e.target.value);
   }, []);
 
   const updateApiKey = useCallback((e: ChangeEvent<HTMLInputElement>) => {
@@ -252,6 +279,8 @@ function BasicSettings({ language }: { language: Language }) {
   const showModelSelect = ["GPT", "DeepSeek", "Claude", "Qwen"].includes(
     serviceProvider
   );
+
+  const showCustomInput = serviceProvider === "Custom";
   const t = translations[language];
 
   return (
@@ -292,6 +321,9 @@ function BasicSettings({ language }: { language: Language }) {
           <option value="Gemini">
             {serviceProviderTranslations[language].Gemini}
           </option>
+          <option value="Custom">
+            {serviceProviderTranslations[language].Custom}
+          </option>
         </select>
       </div>
 
@@ -331,6 +363,40 @@ function BasicSettings({ language }: { language: Language }) {
               value={apiURL}
               onChange={updateApiURL}
               id="api_url"
+            />
+          </div>
+        </>
+      )}
+
+      {showCustomInput && (
+        <>
+          <div className="flex flex-col gap-y-2">
+            <label htmlFor="custom_api_url" className="text-xl font-medium">
+              {t.apiKeyUrl}
+            </label>
+
+            <input
+              className="bg-gray-50 border w-96 border-gray-300 text-gray-900 text-sm rounded-lg
+          focus:ring-blue-500 focus:border-blue-500 block"
+              value={customApiURL}
+              onChange={updateCustomApiURL}
+              id="custom_api_url"
+              placeholder={t.customApiUrlPlaceholder}
+            />
+          </div>
+
+          <div className="flex flex-col gap-y-2">
+            <label htmlFor="custom_model" className="text-xl font-medium">
+              {t.customModelName}
+            </label>
+
+            <input
+              className="bg-gray-50 border w-64 border-gray-300 text-gray-900 text-sm rounded-lg
+          focus:ring-blue-500 focus:border-blue-500 block"
+              value={customModel}
+              onChange={updateCustomModel}
+              id="custom_model"
+              placeholder={t.customModelNamePlaceholder}
             />
           </div>
         </>

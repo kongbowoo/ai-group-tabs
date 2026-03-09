@@ -6,7 +6,13 @@ export type FilterRuleItem = {
   rule: string;
 };
 
-export type ServiceProvider = "GPT" | "Gemini" | "DeepSeek" | "Claude" | "Qwen";
+export type ServiceProvider =
+  | "GPT"
+  | "Gemini"
+  | "DeepSeek"
+  | "Claude"
+  | "Qwen"
+  | "Custom";
 
 export interface TabInfo {
   id: number | undefined;
