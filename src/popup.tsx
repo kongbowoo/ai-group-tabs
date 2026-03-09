@@ -66,9 +66,8 @@ const translateCategory = (name: string, language: Language): string => {
   return name;
 };
 
-// Reverse translate Chinese category name to English for storage
+// Reverse translate Chinese category name to English
 const reverseTranslateCategory = (name: string): string => {
-  // If it's a Chinese category name, convert to English
   for (const [en, zh] of Object.entries(CATEGORY_TRANSLATIONS)) {
     if (zh === name) {
       return en;
@@ -77,25 +76,56 @@ const reverseTranslateCategory = (name: string): string => {
   return name;
 };
 
+// Check if types are the default English types
+const isDefaultEnglishTypes = (types: string[]): boolean => {
+  return (
+    types.length === DEFAULT_GROUP.length &&
+    types.every((type, idx) => type === DEFAULT_GROUP[idx])
+  );
+};
+
+// Check if types are the default Chinese types
+const isDefaultChineseTypes = (types: string[]): boolean => {
+  return (
+    types.length === DEFAULT_GROUP_ZH.length &&
+    types.every((type, idx) => type === DEFAULT_GROUP_ZH[idx])
+  );
+};
+
 const Group = ({ language }: { language: Language }) => {
-  const [types, setTypes] = useState<string[]>([]);
+  const [storedTypes, setStoredTypes] = useState<string[]>([]);
+  const [displayTypes, setDisplayTypes] = useState<string[]>([]);
   const [newType, setNewType] = useState<string>("");
   const [color, setColor] = useState<Color>(Color.grey);
   const [colors, setColors] = useState<Color[]>([]);
   const [colorsEnabled, setColorsEnabled] = useState<boolean>(false);
   const t = translations[language];
 
+  // Load types from storage
   useEffect(() => {
     getStorage<string[]>("types").then((types) => {
       if (!types) {
         // Initialize with default based on language
         const defaultTypes =
           language === "zh" ? DEFAULT_GROUP_ZH : DEFAULT_GROUP;
-        setTypes(defaultTypes);
+        setStoredTypes(defaultTypes);
+        setDisplayTypes(defaultTypes);
         setStorage<string[]>("types", defaultTypes);
         return;
       }
-      setTypes(types);
+      setStoredTypes(types);
+
+      // Determine display types based on language and stored types
+      if (language === "zh" && isDefaultEnglishTypes(types)) {
+        // Stored in English, but display in Chinese
+        setDisplayTypes(DEFAULT_GROUP_ZH);
+      } else if (language === "en" && isDefaultChineseTypes(types)) {
+        // Stored in Chinese, but display in English
+        setDisplayTypes(DEFAULT_GROUP);
+      } else {
+        // Custom types or matching language, display as stored
+        setDisplayTypes(types);
+      }
     });
     getStorage<Color[]>("colors").then((colors) => {
       if (colors) setColors(colors);
@@ -105,31 +135,18 @@ const Group = ({ language }: { language: Language }) => {
     });
   }, []);
 
-  // Update displayed types when language changes
+  // Update display types when language changes
   useEffect(() => {
-    getStorage<string[]>("types").then((storedTypes) => {
-      if (storedTypes) {
-        // Check if stored types are English (default categories)
-        const areDefaultEnglishTypes =
-          storedTypes.length === DEFAULT_GROUP.length &&
-          storedTypes.every((type, idx) => type === DEFAULT_GROUP[idx]);
+    if (storedTypes.length === 0) return;
 
-        const areDefaultChineseTypes =
-          storedTypes.length === DEFAULT_GROUP_ZH.length &&
-          storedTypes.every((type, idx) => type === DEFAULT_GROUP_ZH[idx]);
-
-        if (language === "zh" && areDefaultEnglishTypes) {
-          // Switch to Chinese display for default categories
-          setTypes(DEFAULT_GROUP_ZH);
-          setStorage<string[]>("types", DEFAULT_GROUP_ZH);
-        } else if (language === "en" && areDefaultChineseTypes) {
-          // Switch to English display for default categories
-          setTypes(DEFAULT_GROUP);
-          setStorage<string[]>("types", DEFAULT_GROUP);
-        }
-      }
-    });
-  }, [language]);
+    if (language === "zh" && isDefaultEnglishTypes(storedTypes)) {
+      setDisplayTypes(DEFAULT_GROUP_ZH);
+    } else if (language === "en" && isDefaultChineseTypes(storedTypes)) {
+      setDisplayTypes(DEFAULT_GROUP);
+    } else {
+      setDisplayTypes(storedTypes);
+    }
+  }, [language, storedTypes]);
 
   return (
     <div className="flex flex-col gap-y-2 mb-3">
@@ -141,7 +158,8 @@ const Group = ({ language }: { language: Language }) => {
           if (!newType) {
             return;
           }
-          const newTypes = [...types, newType];
+          const newStoredTypes = [...storedTypes, newType];
+          const newDisplayTypes = [...displayTypes, newType];
           const newColors = colorsEnabled
             ? [...colors, color]
             : [
@@ -151,11 +169,12 @@ const Group = ({ language }: { language: Language }) => {
                 ],
               ];
           setNewType("");
-          setTypes(newTypes);
+          setStoredTypes(newStoredTypes);
+          setDisplayTypes(newDisplayTypes);
           setColors(newColors);
           e.preventDefault();
 
-          setStorage<string[]>("types", newTypes);
+          setStorage<string[]>("types", newStoredTypes);
           setStorage<string[]>("colors", newColors);
         }}
       >
@@ -178,16 +197,29 @@ const Group = ({ language }: { language: Language }) => {
         </div>
       </form>
 
-      {types?.map((type, idx) => (
+      {displayTypes.map((type, idx) => (
         <div className="flex items-center gap-x-2" key={idx}>
           <Input
             placeholder={t.groupType}
             value={type}
             onChange={(e) => {
-              const newTypes = [...types];
-              newTypes[idx] = e.target.value;
-              setTypes(newTypes);
-              setStorage<string[]>("types", newTypes);
+              const newDisplayTypes = [...displayTypes];
+              newDisplayTypes[idx] = e.target.value;
+              setDisplayTypes(newDisplayTypes);
+
+              // Update stored types with the new value
+              // If it's a Chinese default type, convert to English for storage
+              const newValue = reverseTranslateCategory(e.target.value);
+              const newStoredTypes = [...storedTypes];
+              if (isDefaultChineseTypes(storedTypes)) {
+                // Currently storing in Chinese, update directly
+                newStoredTypes[idx] = e.target.value;
+              } else {
+                // Currently storing in English, convert new value
+                newStoredTypes[idx] = newValue;
+              }
+              setStoredTypes(newStoredTypes);
+              setStorage<string[]>("types", newStoredTypes);
             }}
           />
           {colorsEnabled && (
@@ -203,14 +235,13 @@ const Group = ({ language }: { language: Language }) => {
           )}
           <button
             onClick={() => {
-              const newTypes = [...types];
-              const newColors = [...colors];
-              newTypes.splice(idx, 1);
-              newColors.splice(idx, 1);
-              setTypes(newTypes);
-              setColors(newColors);
-              setStorage<string[]>("types", newTypes);
-              setStorage<string[]>("colors", newColors);
+              const newStoredTypes = [...storedTypes];
+              const newDisplayTypes = [...displayTypes];
+              newStoredTypes.splice(idx, 1);
+              newDisplayTypes.splice(idx, 1);
+              setStoredTypes(newStoredTypes);
+              setDisplayTypes(newDisplayTypes);
+              setStorage<string[]>("types", newStoredTypes);
             }}
             className="rounded-md px-3 py-1.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 whitespace-nowrap"
           >
@@ -241,6 +272,7 @@ const Popup = () => {
     getStorage<boolean>("isAutoPosition").then(setIsAutoPosition);
     getStorage<string[]>("types").then((types) => {
       if (!types) {
+        // Initialize with default based on language setting
         const defaultTypes = DEFAULT_GROUP;
         setTypes(defaultTypes);
         setStorage<string[]>("types", defaultTypes);
@@ -261,14 +293,21 @@ const Popup = () => {
   }, []);
 
   const getAllTabsInfo = async () => {
-    if (!apiKey || !types || !types.length) {
+    // Use stored types for grouping (API expects English)
+    let typesToUse = types;
+    if (language === "zh" && isDefaultChineseTypes(types)) {
+      // Convert Chinese default types to English for API
+      typesToUse = DEFAULT_GROUP;
+    }
+
+    if (!apiKey || !typesToUse || !typesToUse.length) {
       toast.warn(translations[language].apiKeyRequired);
       return;
     }
     try {
       setIsLoading(true);
       const tabs = await chrome.tabs.query({ currentWindow: true });
-      const result = await batchGroupTabs(tabs, types, apiKey);
+      const result = await batchGroupTabs(tabs, typesToUse, apiKey);
       chrome.runtime.sendMessage({ result });
     } catch (error) {
       console.error(error);
