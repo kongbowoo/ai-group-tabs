@@ -114,22 +114,6 @@ const Group = ({ language }: { language: Language }) => {
         return;
       }
 
-      // Migrate English default types to Chinese if language is Chinese
-      if (language === "zh" && isDefaultEnglishTypes(types)) {
-        setStoredTypes(DEFAULT_GROUP_ZH);
-        setDisplayTypes(DEFAULT_GROUP_ZH);
-        setStorage<string[]>("types", DEFAULT_GROUP_ZH);
-        return;
-      }
-
-      // Migrate Chinese default types to English if language is English
-      if (language === "en" && isDefaultChineseTypes(types)) {
-        setStoredTypes(DEFAULT_GROUP);
-        setDisplayTypes(DEFAULT_GROUP);
-        setStorage<string[]>("types", DEFAULT_GROUP);
-        return;
-      }
-
       setStoredTypes(types);
       setDisplayTypes(types);
     });
@@ -139,20 +123,7 @@ const Group = ({ language }: { language: Language }) => {
     getStorage<boolean>("colorsEnabled").then((colorsEnabled) => {
       if (colorsEnabled !== undefined) setColorsEnabled(colorsEnabled);
     });
-  }, []);
-
-  // Update display types when language changes
-  useEffect(() => {
-    if (storedTypes.length === 0) return;
-
-    if (language === "zh" && isDefaultEnglishTypes(storedTypes)) {
-      setDisplayTypes(DEFAULT_GROUP_ZH);
-    } else if (language === "en" && isDefaultChineseTypes(storedTypes)) {
-      setDisplayTypes(DEFAULT_GROUP);
-    } else {
-      setDisplayTypes(storedTypes);
-    }
-  }, [language, storedTypes]);
+  }, [language]);
 
   return (
     <div className="flex flex-col gap-y-2 mb-3">
@@ -270,30 +241,49 @@ const Popup = () => {
     false
   );
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [language, setLanguage] = useState<Language>("zh");
+  const [language, setLanguage] = useState<Language | null>(null);
 
   useEffect(() => {
+    // Load language first, then initialize types based on language
+    getStorage<Language>("language").then((lang) => {
+      const loadedLanguage = lang === "en" || lang === "zh" ? lang : "zh";
+      setLanguage(loadedLanguage);
+
+      // Now load and initialize types based on the loaded language
+      getStorage<string[]>("types").then((storedTypes) => {
+        if (!storedTypes) {
+          // Initialize with default based on language
+          const defaultTypes =
+            loadedLanguage === "zh" ? DEFAULT_GROUP_ZH : DEFAULT_GROUP;
+          setTypes(defaultTypes);
+          setStorage<string[]>("types", defaultTypes);
+          return;
+        }
+
+        // Migrate English default types to Chinese if language is Chinese
+        if (loadedLanguage === "zh" && isDefaultEnglishTypes(storedTypes)) {
+          setTypes(DEFAULT_GROUP_ZH);
+          setStorage<string[]>("types", DEFAULT_GROUP_ZH);
+          return;
+        }
+
+        // Migrate Chinese default types to English if language is English
+        if (loadedLanguage === "en" && isDefaultChineseTypes(storedTypes)) {
+          setTypes(DEFAULT_GROUP);
+          setStorage<string[]>("types", DEFAULT_GROUP);
+          return;
+        }
+
+        setTypes(storedTypes);
+      });
+    });
+
     getStorage<string>("openai_key").then(setApiKey);
     getStorage<boolean>("isOn").then(setIsOn);
     getStorage<boolean>("isAutoPosition").then(setIsAutoPosition);
-    getStorage<string[]>("types").then((types) => {
-      if (!types) {
-        // Initialize with default based on language setting
-        const defaultTypes = DEFAULT_GROUP;
-        setTypes(defaultTypes);
-        setStorage<string[]>("types", defaultTypes);
-        return;
-      }
-      setTypes(types);
-    });
     getStorage<ServiceProvider>("serviceProvider").then((value) => {
       if (value) {
         setServiceProvider(value);
-      }
-    });
-    getStorage<Language>("language").then((lang) => {
-      if (lang === "en" || lang === "zh") {
-        setLanguage(lang);
       }
     });
   }, []);
@@ -306,8 +296,8 @@ const Popup = () => {
       typesToUse = DEFAULT_GROUP;
     }
 
-    if (!apiKey || !typesToUse || !typesToUse.length) {
-      toast.warn(translations[language].apiKeyRequired);
+    if (!apiKey || !typesToUse || !typesToUse.length || !language) {
+      toast.warn(translations[language || "zh"].apiKeyRequired);
       return;
     }
     try {
@@ -356,8 +346,17 @@ const Popup = () => {
     }
   };
 
-  const t = translations[language];
+  const t = translations[language || "zh"];
   const hasApiKey = apiKey && apiKey.length > 0;
+
+  // Don't render until language is loaded
+  if (language === null) {
+    return (
+      <div className="p-6 pb-9 min-w-[28rem]">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 pb-9 min-w-[28rem]">
